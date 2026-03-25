@@ -1,14 +1,27 @@
 import { useState } from 'react';
 import Icon from '@/components/ui/icon';
 
-const CONTACTS = [
-  { id: 1, name: 'Алекс Громов', avatar: '🦁', status: 'online', lastMsg: 'Окей, созвонимся в 8!', time: '14:32', unread: 2, isGroup: false },
+type Contact = {
+  id: number;
+  name: string;
+  avatar: string;
+  status: 'online' | 'away' | 'offline';
+  lastMsg: string;
+  time: string;
+  unread: number;
+  isGroup: boolean;
+  members?: number;
+  phone?: string;
+};
+
+const INITIAL_CONTACTS: Contact[] = [
+  { id: 1, name: 'Алекс Громов', avatar: '🦁', status: 'online', lastMsg: 'Окей, созвонимся в 8!', time: '14:32', unread: 2, isGroup: false, phone: '+7 (900) 111-22-33' },
   { id: 2, name: 'Команда Дизайн', avatar: '🎨', status: 'online', lastMsg: 'Новые макеты готовы 🔥', time: '13:15', unread: 5, isGroup: true, members: 8 },
-  { id: 3, name: 'Маша Светлова', avatar: '🌸', status: 'online', lastMsg: 'Ты видел этот фильм?', time: '12:40', unread: 0, isGroup: false },
+  { id: 3, name: 'Маша Светлова', avatar: '🌸', status: 'online', lastMsg: 'Ты видел этот фильм?', time: '12:40', unread: 0, isGroup: false, phone: '+7 (900) 444-55-66' },
   { id: 4, name: 'Игровой Клан', avatar: '🎮', status: 'online', lastMsg: 'Рейд в 21:00, все готовы?', time: '11:55', unread: 12, isGroup: true, members: 24 },
-  { id: 5, name: 'Дима Козлов', avatar: '🚀', status: 'away', lastMsg: 'Буду через час', time: '10:20', unread: 0, isGroup: false },
+  { id: 5, name: 'Дима Козлов', avatar: '🚀', status: 'away', lastMsg: 'Буду через час', time: '10:20', unread: 0, isGroup: false, phone: '+7 (900) 777-88-99' },
   { id: 6, name: 'Семья', avatar: '🏠', status: 'online', lastMsg: 'Мама: Ужин в 19:00!', time: 'вчера', unread: 3, isGroup: true, members: 5 },
-  { id: 7, name: 'Катя Миронова', avatar: '⭐', status: 'offline', lastMsg: 'Спасибо за помощь!', time: 'вчера', unread: 0, isGroup: false },
+  { id: 7, name: 'Катя Миронова', avatar: '⭐', status: 'offline', lastMsg: 'Спасибо за помощь!', time: 'вчера', unread: 0, isGroup: false, phone: '+7 (900) 000-11-22' },
 ];
 
 const MESSAGES: Record<number, Array<{id: number; text: string; out: boolean; time: string; type?: string; fileName?: string; fileSize?: string}>> = {
@@ -50,6 +63,72 @@ export default function MishkaChat() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showInfoPanel, setShowInfoPanel] = useState(false);
+  const [contacts, setContacts] = useState<Contact[]>(INITIAL_CONTACTS);
+
+  // Модалка выбора типа
+  const [showAddMenu, setShowAddMenu] = useState(false);
+
+  // Модалка нового контакта
+  const [showNewContact, setShowNewContact] = useState(false);
+  const [newContactName, setNewContactName] = useState('');
+  const [newContactPhone, setNewContactPhone] = useState('');
+  const [newContactAvatar, setNewContactAvatar] = useState('😊');
+
+  // Модалка новой группы
+  const [showNewGroup, setShowNewGroup] = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupAvatar, setNewGroupAvatar] = useState('👥');
+  const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
+
+  const AVATAR_OPTIONS = ['😊','🦁','🌸','🚀','🎨','🎮','🏠','⭐','🐻','🦊','💎','🌊','🌙','🔥','💡'];
+
+  const createContact = () => {
+    if (!newContactName.trim()) return;
+    const newC: Contact = {
+      id: Date.now(),
+      name: newContactName.trim(),
+      avatar: newContactAvatar,
+      status: 'offline',
+      lastMsg: 'Новый контакт',
+      time: 'сейчас',
+      unread: 0,
+      isGroup: false,
+      phone: newContactPhone.trim() || undefined,
+    };
+    setContacts(prev => [newC, ...prev]);
+    setActiveChat(newC.id);
+    setNewContactName('');
+    setNewContactPhone('');
+    setNewContactAvatar('😊');
+    setShowNewContact(false);
+  };
+
+  const createGroup = () => {
+    if (!newGroupName.trim()) return;
+    const newG: Contact = {
+      id: Date.now(),
+      name: newGroupName.trim(),
+      avatar: newGroupAvatar,
+      status: 'online',
+      lastMsg: 'Группа создана',
+      time: 'сейчас',
+      unread: 0,
+      isGroup: true,
+      members: selectedMembers.length + 1,
+    };
+    setContacts(prev => [newG, ...prev]);
+    setActiveChat(newG.id);
+    setNewGroupName('');
+    setNewGroupAvatar('👥');
+    setSelectedMembers([]);
+    setShowNewGroup(false);
+  };
+
+  const toggleMember = (id: number) => {
+    setSelectedMembers(prev =>
+      prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]
+    );
+  };
 
   const EMOJIS = [
     '😀','😂','🥹','😍','🥰','😎','🤩','😏','😢','😭','😤','😡','🤯','🥳','😴',
@@ -63,12 +142,14 @@ export default function MishkaChat() {
     setShowEmojiPicker(false);
   };
 
-  const currentContact = CONTACTS.find(c => c.id === activeChat);
+  const currentContact = contacts.find(c => c.id === activeChat);
   const currentMessages = activeChat ? (messages[activeChat] || []) : [];
 
-  const filteredContacts = CONTACTS.filter(c =>
+  const filteredContacts = contacts.filter(c =>
     c.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const nonGroupContacts = contacts.filter(c => !c.isGroup);
 
   const sendMessage = () => {
     if (!message.trim() || !activeChat) return;
@@ -85,6 +166,138 @@ export default function MishkaChat() {
 
   return (
     <div className="flex h-screen w-full overflow-hidden mesh-bg font-rubik">
+
+      {/* Modal: New Contact */}
+      {showNewContact && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowNewContact(false)}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="relative w-full max-w-sm glass-strong border border-white/15 rounded-3xl p-6 animate-scale-in shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-golos font-bold text-lg gradient-text">Новый контакт</h3>
+              <button onClick={() => setShowNewContact(false)} className="text-muted-foreground hover:text-foreground transition-colors">
+                <Icon name="X" size={18} />
+              </button>
+            </div>
+
+            {/* Avatar picker */}
+            <div className="mb-5">
+              <p className="text-xs text-muted-foreground mb-2">Аватар</p>
+              <div className="flex flex-wrap gap-2">
+                {AVATAR_OPTIONS.map(em => (
+                  <button key={em} onClick={() => setNewContactAvatar(em)}
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center text-xl transition-all hover:scale-110 ${newContactAvatar === em ? 'bg-primary/30 border border-primary/60 scale-110' : 'bg-muted hover:bg-muted/80'}`}>
+                    {em}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-3 mb-5">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1.5">Имя *</p>
+                <input
+                  autoFocus
+                  value={newContactName}
+                  onChange={e => setNewContactName(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && createContact()}
+                  placeholder="Введите имя"
+                  className="w-full bg-muted/60 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-all"
+                />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1.5">Телефон</p>
+                <input
+                  value={newContactPhone}
+                  onChange={e => setNewContactPhone(e.target.value)}
+                  placeholder="+7 (000) 000-00-00"
+                  className="w-full bg-muted/60 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-all"
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={createContact}
+              disabled={!newContactName.trim()}
+              className="w-full py-3 rounded-2xl bg-gradient-to-r from-purple-500 to-cyan-400 text-white font-semibold disabled:opacity-40 hover:opacity-90 transition-all hover-lift neon-purple"
+            >
+              Добавить контакт
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: New Group */}
+      {showNewGroup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowNewGroup(false)}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="relative w-full max-w-sm glass-strong border border-white/15 rounded-3xl p-6 animate-scale-in shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-golos font-bold text-lg gradient-text">Новая группа</h3>
+              <button onClick={() => setShowNewGroup(false)} className="text-muted-foreground hover:text-foreground transition-colors">
+                <Icon name="X" size={18} />
+              </button>
+            </div>
+
+            {/* Avatar picker */}
+            <div className="mb-4">
+              <p className="text-xs text-muted-foreground mb-2">Аватар группы</p>
+              <div className="flex flex-wrap gap-2">
+                {AVATAR_OPTIONS.map(em => (
+                  <button key={em} onClick={() => setNewGroupAvatar(em)}
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center text-xl transition-all hover:scale-110 ${newGroupAvatar === em ? 'bg-primary/30 border border-primary/60 scale-110' : 'bg-muted hover:bg-muted/80'}`}>
+                    {em}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <p className="text-xs text-muted-foreground mb-1.5">Название группы *</p>
+              <input
+                autoFocus
+                value={newGroupName}
+                onChange={e => setNewGroupName(e.target.value)}
+                placeholder="Например: Рабочие ребята"
+                className="w-full bg-muted/60 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-all"
+              />
+            </div>
+
+            {/* Member selection */}
+            <div className="mb-5">
+              <p className="text-xs text-muted-foreground mb-2">
+                Участники {selectedMembers.length > 0 && <span className="text-primary">• {selectedMembers.length} выбрано</span>}
+              </p>
+              <div className="space-y-1 max-h-44 overflow-y-auto pr-1">
+                {nonGroupContacts.map(c => (
+                  <button
+                    key={c.id}
+                    onClick={() => toggleMember(c.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left ${
+                      selectedMembers.includes(c.id) ? 'bg-primary/15 border border-primary/30' : 'hover:bg-white/5'
+                    }`}
+                  >
+                    <div className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center text-lg flex-shrink-0">{c.avatar}</div>
+                    <span className="text-sm text-foreground flex-1">{c.name}</span>
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                      selectedMembers.includes(c.id) ? 'bg-primary border-primary' : 'border-muted-foreground'
+                    }`}>
+                      {selectedMembers.includes(c.id) && <Icon name="Check" size={11} className="text-white" />}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={createGroup}
+              disabled={!newGroupName.trim()}
+              className="w-full py-3 rounded-2xl bg-gradient-to-r from-purple-500 to-cyan-400 text-white font-semibold disabled:opacity-40 hover:opacity-90 transition-all hover-lift neon-purple"
+            >
+              Создать группу {selectedMembers.length > 0 && `• ${selectedMembers.length + 1} участников`}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Video Call Overlay */}
       {videoCall && currentContact && (
@@ -179,9 +392,39 @@ export default function MishkaChat() {
               <div className="px-4 pt-6 pb-3 space-y-4">
                 <div className="flex items-center justify-between">
                   <h1 className="text-xl font-golos font-bold gradient-text">Сообщения</h1>
-                  <button className="w-8 h-8 rounded-xl glass border border-white/10 flex items-center justify-center text-muted-foreground hover:text-primary transition-all">
-                    <Icon name="Plus" size={16} />
-                  </button>
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowAddMenu(v => !v)}
+                      className={`w-8 h-8 rounded-xl glass border flex items-center justify-center transition-all ${showAddMenu ? 'border-primary/50 text-primary bg-primary/10' : 'border-white/10 text-muted-foreground hover:text-primary'}`}
+                    >
+                      <Icon name={showAddMenu ? 'X' : 'Plus'} size={16} />
+                    </button>
+                    {showAddMenu && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setShowAddMenu(false)} />
+                        <div className="absolute right-0 top-10 z-20 glass-strong border border-white/15 rounded-2xl p-1.5 w-44 animate-scale-in shadow-2xl">
+                          <button
+                            onClick={() => { setShowAddMenu(false); setShowNewContact(true); }}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/8 transition-colors text-left"
+                          >
+                            <div className="w-7 h-7 rounded-lg bg-primary/15 flex items-center justify-center">
+                              <Icon name="UserPlus" size={14} className="text-primary" />
+                            </div>
+                            <span className="text-sm text-foreground">Новый контакт</span>
+                          </button>
+                          <button
+                            onClick={() => { setShowAddMenu(false); setShowNewGroup(true); setSelectedMembers([]); }}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/8 transition-colors text-left"
+                          >
+                            <div className="w-7 h-7 rounded-lg bg-accent/15 flex items-center justify-center">
+                              <Icon name="Users" size={14} className="text-accent" />
+                            </div>
+                            <span className="text-sm text-foreground">Новая группа</span>
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
                 {/* Search */}
                 <div className="relative">
