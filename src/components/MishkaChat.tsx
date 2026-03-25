@@ -49,6 +49,7 @@ export default function MishkaChat() {
   const [videoCall, setVideoCall] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showInfoPanel, setShowInfoPanel] = useState(false);
 
   const EMOJIS = [
     '😀','😂','🥹','😍','🥰','😎','🤩','😏','😢','😭','😤','😡','🤯','🥳','😴',
@@ -238,9 +239,10 @@ export default function MishkaChat() {
             </div>
 
             {/* Chat window */}
-            <div className="flex flex-col flex-1 min-w-0">
+            <div className="flex flex-1 min-w-0 overflow-hidden">
               {activeChat && currentContact ? (
                 <>
+                <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
                   {/* Chat header */}
                   <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 glass">
                     <div className="flex items-center gap-3">
@@ -252,8 +254,8 @@ export default function MishkaChat() {
                           <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 rounded-full border-2 border-background animate-online" />
                         )}
                       </div>
-                      <div>
-                        <p className="font-golos font-semibold text-foreground">{currentContact.name}</p>
+                      <button onClick={() => setShowInfoPanel(v => !v)} className="text-left group">
+                        <p className="font-golos font-semibold text-foreground group-hover:text-primary transition-colors">{currentContact.name}</p>
                         <p className="text-xs text-muted-foreground flex items-center gap-1">
                           {currentContact.status === 'online' ? (
                             <><span className="w-1.5 h-1.5 bg-green-400 rounded-full inline-block" /> в сети</>
@@ -264,7 +266,7 @@ export default function MishkaChat() {
                           )}
                           {currentContact.isGroup && ` • ${currentContact.members} участников`}
                         </p>
-                      </div>
+                      </button>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
@@ -376,6 +378,115 @@ export default function MishkaChat() {
                       </button>
                     </div>
                   </div>
+                </div>
+
+                  {/* Info panel */}
+                  {showInfoPanel && currentContact && (
+                    <div className="w-72 flex-shrink-0 border-l border-white/5 overflow-y-auto animate-slide-in-right glass">
+                      {/* Close button */}
+                      <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
+                        <p className="font-golos font-semibold text-sm text-foreground">
+                          {currentContact.isGroup ? 'Участники группы' : 'Профиль'}
+                        </p>
+                        <button onClick={() => setShowInfoPanel(false)} className="text-muted-foreground hover:text-foreground transition-colors">
+                          <Icon name="X" size={16} />
+                        </button>
+                      </div>
+
+                      {currentContact.isGroup ? (
+                        /* Group members view */
+                        <div className="p-4 space-y-4">
+                          <div className="flex flex-col items-center gap-3 py-4">
+                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500/30 to-cyan-500/20 flex items-center justify-center text-3xl">
+                              {currentContact.avatar}
+                            </div>
+                            <div className="text-center">
+                              <p className="font-golos font-bold text-foreground">{currentContact.name}</p>
+                              <p className="text-xs text-muted-foreground">{currentContact.members} участников</p>
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            {[
+                              { emoji: '😎', name: 'Иван Петров', role: 'Создатель', status: 'online' },
+                              { emoji: '🦁', name: 'Алекс Громов', role: 'Администратор', status: 'online' },
+                              { emoji: '🌸', name: 'Маша Светлова', role: 'Участник', status: 'online' },
+                              { emoji: '🚀', name: 'Дима Козлов', role: 'Участник', status: 'away' },
+                              { emoji: '⭐', name: 'Катя Миронова', role: 'Участник', status: 'offline' },
+                            ].map((m, i) => (
+                              <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors">
+                                <div className="relative flex-shrink-0">
+                                  <div className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center text-lg">{m.emoji}</div>
+                                  {m.status === 'online' && <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 rounded-full border-2 border-background" />}
+                                  {m.status === 'away' && <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-yellow-400 rounded-full border-2 border-background" />}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium text-foreground truncate">{m.name}</p>
+                                  <p className="text-xs text-muted-foreground">{m.role}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          <button className="w-full py-2.5 rounded-xl glass border border-white/10 text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-2">
+                            <Icon name="UserPlus" size={15} />
+                            Добавить участника
+                          </button>
+                        </div>
+                      ) : (
+                        /* Contact profile view */
+                        <div className="p-4 space-y-4">
+                          <div className="flex flex-col items-center gap-3 py-4">
+                            <div className="avatar-ring">
+                              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500/40 to-cyan-500/30 flex items-center justify-center text-3xl">
+                                {currentContact.avatar}
+                              </div>
+                            </div>
+                            <div className="text-center">
+                              <p className="font-golos font-bold text-foreground">{currentContact.name}</p>
+                              <p className="text-xs flex items-center justify-center gap-1 mt-1">
+                                {currentContact.status === 'online'
+                                  ? <><span className="w-1.5 h-1.5 bg-green-400 rounded-full" /><span className="text-green-400">В сети</span></>
+                                  : currentContact.status === 'away'
+                                  ? <><span className="w-1.5 h-1.5 bg-yellow-400 rounded-full" /><span className="text-yellow-400">Не беспокоить</span></>
+                                  : <span className="text-muted-foreground">Не в сети</span>
+                                }
+                              </p>
+                            </div>
+                          </div>
+                          <div className="glass rounded-2xl border border-white/8 overflow-hidden divide-y divide-white/5">
+                            {[
+                              { icon: 'Phone', label: 'Телефон', value: '+7 (999) 000-00-00' },
+                              { icon: 'Mail', label: 'Email', value: 'user@example.com' },
+                              { icon: 'MessageSquare', label: 'Статус', value: '🚀 Всегда на связи' },
+                            ].map((f, i) => (
+                              <div key={i} className="flex items-center gap-3 px-4 py-3">
+                                <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                  <Icon name={f.icon} size={14} className="text-primary" />
+                                </div>
+                                <div>
+                                  <p className="text-xs text-muted-foreground">{f.label}</p>
+                                  <p className="text-sm text-foreground">{f.value}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button className="py-2.5 rounded-xl bg-primary/10 border border-primary/20 text-primary text-sm font-medium hover:bg-primary/20 transition-colors flex items-center justify-center gap-1.5">
+                              <Icon name="Phone" size={14} />
+                              Позвонить
+                            </button>
+                            <button onClick={() => setVideoCall(true)} className="py-2.5 rounded-xl bg-primary/10 border border-primary/20 text-primary text-sm font-medium hover:bg-primary/20 transition-colors flex items-center justify-center gap-1.5">
+                              <Icon name="Video" size={14} />
+                              Видео
+                            </button>
+                          </div>
+                          <button className="w-full py-2.5 rounded-xl glass border border-red-500/20 text-red-400 text-sm hover:bg-red-500/10 transition-colors flex items-center justify-center gap-2">
+                            <Icon name="UserX" size={14} />
+                            Заблокировать
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </>
               ) : (
                 <div className="flex-1 flex items-center justify-center">
