@@ -48,6 +48,19 @@ export default function MishkaChat() {
   const [messages, setMessages] = useState(MESSAGES);
   const [videoCall, setVideoCall] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+  const EMOJIS = [
+    '😀','😂','🥹','😍','🥰','😎','🤩','😏','😢','😭','😤','😡','🤯','🥳','😴',
+    '👍','👎','❤️','🔥','⭐','💯','🎉','🙏','👏','✌️','🤝','💪','🫶','🤘','👀',
+    '🚀','💡','🎮','🎨','🎵','🍕','☕','🌟','💎','🏆','🌈','⚡','💥','🎯','🛸',
+    '😻','🐻','🦁','🐯','🦊','🐺','🐸','🐧','🦄','🐉','🍀','🌸','🌊','🌙','☀️',
+  ];
+
+  const insertEmoji = (emoji: string) => {
+    setMessage(prev => prev + emoji);
+    setShowEmojiPicker(false);
+  };
 
   const currentContact = CONTACTS.find(c => c.id === activeChat);
   const currentMessages = activeChat ? (messages[activeChat] || []) : [];
@@ -317,9 +330,31 @@ export default function MishkaChat() {
                   </div>
 
                   {/* Input */}
-                  <div className="px-6 py-4 border-t border-white/5">
-                    <div className="flex items-center gap-3 glass border border-white/10 rounded-2xl px-4 py-2">
-                      <button className="text-muted-foreground hover:text-primary transition-colors flex-shrink-0">
+                  <div className="px-6 py-4 border-t border-white/5 relative">
+                    {/* Emoji picker */}
+                    {showEmojiPicker && (
+                      <div className="absolute bottom-20 left-6 z-30 glass-strong border border-white/15 rounded-2xl p-3 w-72 animate-scale-in shadow-2xl">
+                        <div className="grid grid-cols-10 gap-1">
+                          {EMOJIS.map((emoji, i) => (
+                            <button
+                              key={i}
+                              onClick={() => insertEmoji(emoji)}
+                              className="w-7 h-7 flex items-center justify-center text-lg rounded-lg hover:bg-white/10 transition-all hover:scale-110"
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {showEmojiPicker && (
+                      <div className="fixed inset-0 z-20" onClick={() => setShowEmojiPicker(false)} />
+                    )}
+                    <div className="flex items-center gap-3 glass border border-white/10 rounded-2xl px-4 py-2 relative z-10">
+                      <button
+                        onClick={() => setShowEmojiPicker(v => !v)}
+                        className={`transition-colors flex-shrink-0 ${showEmojiPicker ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}
+                      >
                         <Icon name="Smile" size={20} />
                       </button>
                       <button className="text-muted-foreground hover:text-primary transition-colors flex-shrink-0">
