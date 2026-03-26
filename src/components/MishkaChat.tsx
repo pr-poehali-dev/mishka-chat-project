@@ -82,6 +82,30 @@ export default function MishkaChat() {
 
   const AVATAR_OPTIONS = ['😊','🦁','🌸','🚀','🎨','🎮','🏠','⭐','🐻','🦊','💎','🌊','🌙','🔥','💡'];
 
+  // Профиль пользователя
+  const [profile, setProfile] = useState({
+    name: 'Иван Петров',
+    username: 'ivan_petrov',
+    phone: '+7 (999) 123-45-67',
+    email: 'ivan@example.com',
+    status: '🚀 Запускаю ракеты',
+    birthday: '15 мая 1995',
+    avatar: '😎',
+  });
+  const [editingField, setEditingField] = useState<string | null>(null);
+  const [editingValue, setEditingValue] = useState('');
+
+  const startEdit = (field: string, value: string) => {
+    setEditingField(field);
+    setEditingValue(value);
+  };
+
+  const saveEdit = () => {
+    if (!editingField) return;
+    setProfile(p => ({ ...p, [editingField]: editingValue.trim() || p[editingField as keyof typeof p] }));
+    setEditingField(null);
+  };
+
   const createContact = () => {
     if (!newContactName.trim()) return;
     const newC: Contact = {
@@ -752,14 +776,57 @@ export default function MishkaChat() {
 
               {/* Avatar section */}
               <div className="glass-strong rounded-3xl p-8 flex flex-col items-center gap-4 text-center border border-white/10 neon-purple">
-                <div className="avatar-ring cursor-pointer hover-lift" title="Изменить фото">
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-5xl">
-                    😎
+                {/* Avatar picker inline */}
+                <div className="relative group/avatar">
+                  <div className="avatar-ring cursor-pointer hover-lift" onClick={() => startEdit('avatar', profile.avatar)} title="Изменить аватар">
+                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-5xl">
+                      {profile.avatar}
+                    </div>
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-primary flex items-center justify-center cursor-pointer hover:scale-110 transition-all" onClick={() => startEdit('avatar', profile.avatar)}>
+                    <Icon name="Pencil" size={12} className="text-white" />
                   </div>
                 </div>
+
+                {/* Avatar picker modal */}
+                {editingField === 'avatar' && (
+                  <div className="w-full glass border border-white/10 rounded-2xl p-3 animate-scale-in">
+                    <p className="text-xs text-muted-foreground mb-2">Выберите аватар</p>
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      {AVATAR_OPTIONS.map(em => (
+                        <button key={em} onClick={() => { setProfile(p => ({ ...p, avatar: em })); setEditingField(null); }}
+                          className={`w-10 h-10 rounded-xl flex items-center justify-center text-2xl transition-all hover:scale-110 ${profile.avatar === em ? 'bg-primary/30 border border-primary/60 scale-110' : 'hover:bg-white/10'}`}>
+                          {em}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div>
-                  <h3 className="text-xl font-golos font-bold text-foreground">Иван Петров</h3>
-                  <p className="text-muted-foreground text-sm mt-1">@ivan_petrov</p>
+                  {editingField === 'name' ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        autoFocus
+                        value={editingValue}
+                        onChange={e => setEditingValue(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditingField(null); }}
+                        className="bg-muted/60 border border-primary/40 rounded-xl px-3 py-1.5 text-lg font-golos font-bold text-foreground text-center focus:outline-none focus:border-primary/80 w-48"
+                      />
+                      <button onClick={saveEdit} className="w-7 h-7 rounded-lg bg-primary/20 flex items-center justify-center hover:bg-primary/40 transition-colors">
+                        <Icon name="Check" size={13} className="text-primary" />
+                      </button>
+                      <button onClick={() => setEditingField(null)} className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors">
+                        <Icon name="X" size={13} className="text-muted-foreground" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 group/name cursor-pointer" onClick={() => startEdit('name', profile.name)}>
+                      <h3 className="text-xl font-golos font-bold text-foreground">{profile.name}</h3>
+                      <Icon name="Pencil" size={13} className="text-muted-foreground opacity-0 group-hover/name:opacity-100 transition-opacity" />
+                    </div>
+                  )}
+                  <p className="text-muted-foreground text-sm mt-1">@{profile.username}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 bg-green-400 rounded-full animate-online" />
@@ -785,33 +852,49 @@ export default function MishkaChat() {
 
               {/* Info fields */}
               <div className="glass rounded-2xl border border-white/8 overflow-hidden divide-y divide-white/5">
-                {[
-                  { label: 'Имя', value: 'Иван Петров', icon: 'User' },
-                  { label: 'Телефон', value: '+7 (999) 123-45-67', icon: 'Phone' },
-                  { label: 'Email', value: 'ivan@example.com', icon: 'Mail' },
-                  { label: 'Статус', value: '🚀 Запускаю ракеты', icon: 'MessageSquare' },
-                  { label: 'Дата рождения', value: '15 мая 1995', icon: 'Calendar' },
-                ].map((field, i) => (
-                  <div key={i} className="flex items-center justify-between px-5 py-4 hover:bg-white/3 transition-colors group">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                {([
+                  { label: 'Имя', key: 'name', value: profile.name, icon: 'User' },
+                  { label: 'Телефон', key: 'phone', value: profile.phone, icon: 'Phone' },
+                  { label: 'Email', key: 'email', value: profile.email, icon: 'Mail' },
+                  { label: 'Статус', key: 'status', value: profile.status, icon: 'MessageSquare' },
+                  { label: 'Дата рождения', key: 'birthday', value: profile.birthday, icon: 'Calendar' },
+                ] as const).map((field) => (
+                  <div key={field.key} className="flex items-center justify-between px-5 py-4 hover:bg-white/3 transition-colors group">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
                         <Icon name={field.icon} size={15} className="text-primary" />
                       </div>
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <p className="text-xs text-muted-foreground">{field.label}</p>
-                        <p className="text-sm font-medium text-foreground">{field.value}</p>
+                        {editingField === field.key ? (
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <input
+                              autoFocus
+                              value={editingValue}
+                              onChange={e => setEditingValue(e.target.value)}
+                              onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditingField(null); }}
+                              className="bg-muted/60 border border-primary/40 rounded-lg px-2 py-1 text-sm text-foreground focus:outline-none focus:border-primary/80 w-full"
+                            />
+                            <button onClick={saveEdit} className="w-6 h-6 rounded-md bg-primary/20 flex items-center justify-center hover:bg-primary/40 transition-colors flex-shrink-0">
+                              <Icon name="Check" size={11} className="text-primary" />
+                            </button>
+                            <button onClick={() => setEditingField(null)} className="w-6 h-6 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
+                              <Icon name="X" size={11} className="text-muted-foreground" />
+                            </button>
+                          </div>
+                        ) : (
+                          <p className="text-sm font-medium text-foreground truncate">{field.value}</p>
+                        )}
                       </div>
                     </div>
-                    <button className="opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Icon name="Pencil" size={14} className="text-muted-foreground hover:text-primary transition-colors" />
-                    </button>
+                    {editingField !== field.key && (
+                      <button className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2" onClick={() => startEdit(field.key, field.value)}>
+                        <Icon name="Pencil" size={14} className="text-muted-foreground hover:text-primary transition-colors" />
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
-
-              <button className="w-full py-3 rounded-2xl bg-gradient-to-r from-purple-500 to-cyan-400 text-white font-semibold hover:opacity-90 transition-all hover-lift neon-purple">
-                Редактировать профиль
-              </button>
             </div>
           </div>
         )}
